@@ -371,9 +371,9 @@ elseif ($v->chat_type == 'private') {
 						}
 					} else {
 						if ($e[1] == 'username') {
-							$t = getTranslation('registerNewAccountPhase1Invalid');
+							$t = $tr->getTranslation('registerNewAccountPhase1Invalid');
 						} elseif ($e[1] == 'password') {
-							$t = getTranslation('registerNewAccountPhase2Invalid');
+							$t = $tr->getTranslation('registerNewAccountPhase2Invalid');
 						}
 					}
 				}
@@ -493,7 +493,7 @@ elseif ($v->chat_type == 'private') {
 							$t = $tr->getTranslation('sessionsResetSuccessfully', [$e[2]]);
 							$buttons[][] = $bot->createInlineButton('← ' . $tr->getTranslation('cancel'), 'cancel|settingsEditProfile');
 						} else {
-							$t = $tr->getTranslation('');
+							$t = $tr->getTranslation('logInWrong');
 						}
 					} else {
 						$t = $tr->getTranslation('logInWrong');
