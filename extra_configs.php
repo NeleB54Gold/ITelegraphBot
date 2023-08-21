@@ -7,6 +7,12 @@ $configs = array_merge($configs, [
 			514126791					=> 'ITelegraphBot',
 			1224650047					=> 'ITelegraphEUBot',
 			700869441					=> 'ITelegraph_Bot'
+		],
+		# Telegraph instances
+		'telegraph_links'			=> [
+			'telegra.ph',
+			'graph.org',
+			'te.legra.ph'
 		]
 ]);
 

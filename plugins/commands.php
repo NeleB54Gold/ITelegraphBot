@@ -42,6 +42,8 @@ if (!defined('ITelegraph_Vars')) {
 			$disconnectedNow = true;
 		}*/
 	}
+	if (!isset($user['settings']['link'])) $user['settings']['link'] = $itg->links[0];
+	$itg->setLink($user['settings']['link']);
 }
 
 # Inline commands
@@ -173,7 +175,7 @@ elseif ($v->chat_type == 'private') {
 							unset($user['settings']['temp_username']);
 							$db->query('UPDATE users SET settings = ? WHERE id = ?', [json_encode($user['settings'], $v->user_id)]);
 							$t = $bot->bold($tr->getTranslation('internalLogInPhase1NotFound')) . PHP_EOL . PHP_EOL . $tr->getTranslation('internalLogInPhase1Down');
-						} elseif (!empty($v->text) && strlen($v->text) > 8 && strlen($v->text) < 64) {
+						} elseif (!empty($v->text) && strlen($v->text) >= 8 && strlen($v->text) <= 64) {
 							$bot->editConfigs('response', true);
 							$m = $bot->sendMessage($v->chat_id, $bot->bold($bot->italic($tr->getTranslation('decryptingAccount'), 1)));
 							$decrypted_key = decrypt($account['tkey'], $account['username'], $v->text);
@@ -236,7 +238,7 @@ elseif ($v->chat_type == 'private') {
 								unset($user['settings']['temp_username']);
 								$db->query('UPDATE users SET settings = ? WHERE id = ?', [json_encode($user['settings'], $v->user_id)]);
 								$t = $tr->getTranslation('registerNewAccountPhase1Exists');
-							} elseif (strlen($v->text) > 8 && strlen($v->text) < 64) {
+							} elseif (strlen($v->text) >= 8 && strlen($v->text) <= 64) {
 								$bot->editConfigs('response', true);
 								$m = $bot->sendMessage($v->chat_id, $bot->bold($bot->italic($tr->getTranslation('cryptingAccount'), 1)));
 								# Revoke the Token for Security reasons
@@ -265,6 +267,7 @@ elseif ($v->chat_type == 'private') {
 								die;
 							} else {
 								$t = $tr->getTranslation('registerNewAccountPhase2Invalid', [8, 64]);
+								$delete = true;
 							}
 						} else {
 							# Username Input
@@ -292,6 +295,10 @@ elseif ($v->chat_type == 'private') {
 					$bot->answerCBQ($v->query_id, $cbtext, $show);
 				} else {
 					$bot->sendMessage($v->chat_id, $t, $buttons);
+					if ($delete) {
+						sleep(30);
+						$bot->deleteMessage($v->chat_id, $v->message_id);
+					}
 				}
 				die;
 			}
@@ -310,7 +317,7 @@ elseif ($v->chat_type == 'private') {
 								if ($if_exists['username']) {
 									$t = $tr->getTranslation('registerNewAccountPhase1Exists');
 								} else {
-									if ($e[2] && !empty($v->text) && strlen($v->text) > 8 && strlen($v->text) < 64) {
+									if ($e[2] && !empty($v->text) && strlen($v->text) >= 8 && strlen($v->text) <= 64) {
 										$itgac = $db->query('SELECT tkey FROM telegraph WHERE username = ? LIMIT 1', [$user['account']['username']], 1);
 										$decrypted_key = decrypt($itgac['tkey'], $user['account']['username'], $v->text);
 										$taccount = $itg->getAccountInfo($decrypted_key, ['short_name', 'author_name', 'author_url', 'page_count']);
@@ -332,6 +339,7 @@ elseif ($v->chat_type == 'private') {
 											$t = $tr->getTranslation('logInWrong');
 											$buttons[][] = $bot->createInlineButton('← ' . $tr->getTranslation('cancel'), 'cancel|settingsEditAccount');
 										}
+										$delete = true;
 									} else {
 										$t = $tr->getTranslation('confirmPassword', [$user['account']['username']]);
 										$db->rset('ITGB-' . $v->user_id . '-action', 'editAccount-username-' . $v->text, (60 * 5));
@@ -342,7 +350,7 @@ elseif ($v->chat_type == 'private') {
 								$t = $tr->getTranslation('registerNewAccountPhase1Invalid', [$limits[$e[1]]]);
 							}
 						} else {
-							if (!empty($v->text) && strlen($v->text) > 8 && strlen($v->text) < 64) {
+							if (!empty($v->text) && strlen($v->text) >= 8 && strlen($v->text) <= 64) {
 								if ($e[2]) {
 									$itgac = $db->query('SELECT tkey, username FROM telegraph WHERE username = ? LIMIT 1', [$user['account']['username']], 1);
 									$decrypted_key = decrypt($itgac['tkey'], $user['account']['username'], $v->text);
@@ -355,7 +363,7 @@ elseif ($v->chat_type == 'private') {
 										$user['accounts'][$itgac['username']] = $user['account'];
 										$db->query('UPDATE users SET account = ?, accounts = ? WHERE id = ?', [json_encode($user['account']), json_encode($user['accounts']), $v->user_id]);
 										$t = $tr->getTranslation('editAccountPasswordSuccessful');
-										$buttons[][] = $bot->createInlineButton('← ' . $tr->getTranslation('cancel'), 'cancel|settingsEditAccount');
+										$buttons[][] = $bot->createInlineButton('← ' . $tr->getTranslation('back'), 'cancel|settingsEditAccount');
 									} else {
 										$t = $tr->getTranslation('logInWrong');
 										$buttons[][] = $bot->createInlineButton('← ' . $tr->getTranslation('cancel'), 'cancel|settingsEditAccount');
@@ -365,6 +373,7 @@ elseif ($v->chat_type == 'private') {
 									$db->rset('ITGB-' . $v->user_id . '-action', 'editAccount-password-' . $v->text, (60 * 5));
 									$buttons[][] = $bot->createInlineButton('← ' . $tr->getTranslation('cancel'), 'cancel|settingsEditAccount');
 								}
+								$delete = true;
 							} else {
 								$t = $tr->getTranslation('registerNewAccountPhase2Invalid', [8, 64]);
 							}
@@ -386,6 +395,10 @@ elseif ($v->chat_type == 'private') {
 				} else {
 					if (isset($t) && !empty($t)) {
 						$bot->sendMessage($v->chat_id, $t, $buttons);
+						if ($delete) {
+							sleep(30);
+							$bot->deleteMessage($v->chat_id, $v->message_id);
+						}
 						die;
 					}
 				}
@@ -622,13 +635,14 @@ elseif ($v->chat_type == 'private') {
 				$pages = $itg->getPageList(decrypt($user['account']['encrypted_key'], $user['account']['username'], $itg->getTempPw()), 0, 200);
 				if ($pages['ok']) $db->rset('ITGP-' . $user['account']['username'], json_encode($pages), 60);
 			}
-			if ($pages['ok'] and !empty($pages = $pages['result']['pages'])) {
+			if ($pages['ok']) {
+				$pages = $pages['result']['pages'];
 				if ($user['account']['page_count'] !== count($pages)) {
 					$user['account']['page_count'] = count($pages);
 					$db->query('UPDATE users SET account = ? WHERE id = ?', [json_encode($user['account']), $user['id']]);
 				}
 			}
-			if ($user['account']['page_count']) {
+			if ($user['account']['page_count'] > 0) {
 				$pages = $tr->getTranslation('postCount', [$user['account']['page_count']]);
 			} else {
 				$pages = $tr->getTranslation('noPosts');
@@ -827,6 +841,7 @@ elseif ($v->chat_type == 'private') {
 				$buttons[][] = $bot->createInlineButton($tr->getTranslation('editAccount'), 'settingsEditAccount');
 				$buttons[][] = $bot->createInlineButton($tr->getTranslation('editProfile'), 'settingsEditProfile');
 				$buttons[][] = $bot->createInlineButton($tr->getTranslation('removeAccountButton'), 'botLogOut');
+				$buttons[][] = $bot->createInlineButton($tr->getTranslation('switchLink'), 'switchLink');
 				$buttons[][] = $bot->createInlineButton($tr->getTranslation('switchAccount'), 'switchAccount');
 				$buttons[][] = $bot->createInlineButton($tr->getTranslation('switchLanguage'), 'switchLang');
 				$buttons[][] = $bot->createInlineButton('← ' . $tr->getTranslation('back'), 'start');
@@ -937,6 +952,7 @@ elseif ($v->chat_type == 'private') {
 				'fa' => '🇮🇷 فارسی',
 				'fr' => '🇫🇷 Français',
 				'pt' => '🇵🇹 Português',
+				'uk' => '🇺🇦 Yкраїнська',
 				'zh-TW' => '🇨🇳 简体中文'
 			];
 			if (strpos($v->query_data, 'switchLang-') === 0) {
@@ -956,6 +972,28 @@ elseif ($v->chat_type == 'private') {
 			}
 			$buttons[][] = $bot->createInlineButton('← ' . $tr->getTranslation('back'), 'settings');
 		} 
+		
+		# Switch Link
+		elseif (strpos($v->query_data, 'switchLink') === 0) {
+			# Set Link
+			if (strpos($v->query_data, 'switchLink-') === 0) {
+				$link = str_replace('switchLink-', '', $v->query_data);
+				if (in_array($link, $itg->links)) {
+					$user['settings']['link'] = 'https://' . $link;
+					$db->query('UPDATE users SET settings = ? WHERE id = ?', [json_encode($user['settings']), $v->user_id]);
+				} else {
+					unset($link);
+				}
+			}
+			if (isset($itg->links) && !empty($itg->links)) {
+				foreach ($itg->links as $link) {
+					if ($link == str_replace('https://', '', $user['settings']['link'])) $link .= ' ✅';
+					$buttons[][] = $bot->createInlineButton($link, 'switchLink-' . $link);
+				}
+			}
+			$buttons[][] = $bot->createInlineButton('← ' . $tr->getTranslation('back'), 'settings');
+			$t = $tr->getTranslation('chooseLink');
+		}
 		# Help / About bot
 		elseif (in_array($v->command, ['help', 'about'])) {
 			$t = $tr->getTranslation('aboutBot');
@@ -975,7 +1013,7 @@ elseif ($v->chat_type == 'private') {
 			if ($photo['ok']) {
 				$r = $itg->upload('https://api.telegram.org/file/bot' . $bot->token . '/' . $photo['result']['file_path']);
 				if (isset($r[0]['src'])) {
-					$t = 'https://telegra.ph' . $r[0]['src'];
+					$t = $itg->link . $r[0]['src'];
 				} else {
 					$t = 'There is an error...';
 				}

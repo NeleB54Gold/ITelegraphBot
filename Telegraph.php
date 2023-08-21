@@ -2,12 +2,15 @@
 
 class Telegraph {
 	public $configs = [];
-	public $endpoint = 'https://api.telegra.ph/';
+	public $links = [];
+	public $link = 'https://telegra.ph';
+	public $endpoint = 'https://api.telegra.ph';
 	
 	public function __construct ($configs) {
 		$this->configs['post'] = $configs['post'];
 		$this->configs['timeout'] = $configs['timeout'];
 		$this->configs['response'] = true;
+		$this->links = $configs['telegraph_links'];
 	}
 	
 	public function getTempPw () {
@@ -36,8 +39,13 @@ class Telegraph {
 		return;
 	}
 	
+	public function setLink ($link) {
+		$this->link = $link;
+		$this->endpoint = str_replace('//', '//api.', $link);
+	}
+	
 	public function api ($method) {
-		return $this->endpoint . $method;
+		return $this->endpoint . '/' . $method;
 	}
 	
 	public function createAccount ($short_name, $author_name = null, $author_url = null) {
@@ -114,6 +122,7 @@ class Telegraph {
 		];
 		$r = $this->request($this->api('getPageList'), $args);
 		if (!$r['ok']) return $r;
+		$pages = [];
 		foreach ($r['result']['pages'] as $page) {
 			if ($page['title'] != '404: Not found') $pages[] = $page;
 		}
@@ -134,7 +143,7 @@ class Telegraph {
 	
 	public function upload ($file_name, $mime_type = null) {
 		$args['file'] = curl_file_create($file_name, $mime_type); 
-		return $this->request('https://telegra.ph/upload', $args);
+		return $this->request($this->link . '/upload', $args);
 	}
 }
 
