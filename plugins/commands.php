@@ -42,7 +42,7 @@ if (!defined('ITelegraph_Vars')) {
 			$disconnectedNow = true;
 		}*/
 	}
-	if (!isset($user['settings']['link'])) $user['settings']['link'] = $itg->links[0];
+	if (!isset($user['settings']['link'])) $user['settings']['link'] = 'https://' . $itg->links[0];
 	$itg->setLink($user['settings']['link']);
 }
 
